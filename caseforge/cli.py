@@ -4,7 +4,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from caseforge.generator import create_nozzle_case
+from caseforge.generator import create_nozzle_case, create_generic_case
 from caseforge.validators import validate_su2_config, config_has_errors
 from caseforge.config_explainer import explain_su2_config, write_explanation_markdown
 from caseforge.monitor import analyze_history, write_residual_plot
@@ -29,7 +29,10 @@ def version():
 
 @app.command()
 def create(
-    case_type: str = typer.Argument(..., help="Case type to create. Example: nozzle"),
+    case_type: str = typer.Argument(
+        ...,
+        help="Case type to create. Supported: nozzle, generic.",
+    ),
     output: str = typer.Option(
         "caseforge_output",
         "--output",
@@ -61,69 +64,115 @@ def create(
         "--iterations",
         help="Number of SU2 solver iterations.",
     ),
+    solver: str = typer.Option(
+        "EULER",
+        "--solver",
+        help="SU2 solver for generic cases. Example: EULER, RANS, NAVIER_STOKES.",
+    ),
+    cfl: float = typer.Option(
+        1.0,
+        "--cfl",
+        help="CFL number for the generated config.",
+    ),
+    wall_marker: str = typer.Option(
+        "wall",
+        "--wall-marker",
+        help="Wall boundary marker name for generic cases.",
+    ),
+    farfield_marker: str = typer.Option(
+        "farfield",
+        "--farfield-marker",
+        help="Farfield boundary marker name for generic cases.",
+    ),
+    freestream_pressure: float = typer.Option(
+        101325.0,
+        "--freestream-pressure",
+        help="Freestream/reference pressure in Pascal for generic cases.",
+    ),
+    freestream_temperature: float = typer.Option(
+        300.0,
+        "--freestream-temperature",
+        help="Freestream/reference temperature in Kelvin for generic cases.",
+    ),
 ):
     """
-    Create a new SU2 case.
+    Create a starter SU2 case.
     """
+
     case_type = case_type.lower().strip()
 
-    if case_type != "nozzle":
-        console.print("[bold red]Only 'nozzle' is supported right now.[/bold red]")
+    if case_type not in {"nozzle", "generic"}:
+        console.print("[bold red]Supported case types right now: nozzle, generic[/bold red]")
         console.print("Soon we will add: airfoil, wedge, and flatplate.")
-        raise typer.Exit(code=1)
-
-    if inlet_pressure <= 0:
-        console.print("[bold red]Inlet pressure must be positive.[/bold red]")
-        raise typer.Exit(code=1)
-
-    if outlet_pressure <= 0:
-        console.print("[bold red]Outlet pressure must be positive.[/bold red]")
-        raise typer.Exit(code=1)
-
-    if inlet_pressure <= outlet_pressure:
-        console.print("[bold red]For a nozzle case, inlet pressure should be greater than outlet pressure.[/bold red]")
-        raise typer.Exit(code=1)
-
-    if temperature <= 0:
-        console.print("[bold red]Temperature must be positive.[/bold red]")
         raise typer.Exit(code=1)
 
     if iterations <= 0:
         console.print("[bold red]Iterations must be greater than zero.[/bold red]")
         raise typer.Exit(code=1)
 
-    console.print("[bold blue]Creating nozzle case...[/bold blue]")
+    if cfl <= 0:
+        console.print("[bold red]CFL number must be greater than zero.[/bold red]")
+        raise typer.Exit(code=1)
 
-    created_files = create_nozzle_case(
-        output_dir=output,
-        mesh_file=mesh_file,
-        inlet_pressure=inlet_pressure,
-        outlet_pressure=outlet_pressure,
-        temperature=temperature,
-        iterations=iterations,
-    )
+    if case_type == "nozzle":
+        if inlet_pressure <= 0:
+            console.print("[bold red]Inlet pressure must be positive.[/bold red]")
+            raise typer.Exit(code=1)
 
-    table = Table(title="Generated Files")
-    table.add_column("File", style="green")
-    table.add_column("Purpose", style="cyan")
+        if outlet_pressure <= 0:
+            console.print("[bold red]Outlet pressure must be positive.[/bold red]")
+            raise typer.Exit(code=1)
 
-    purposes = {
-        "case.cfg": "SU2 configuration file",
-        "run.bat": "Windows run script",
-        "run.sh": "Linux/Mac run script",
-        "case_info.md": "Human-readable case summary",
-    }
+        if inlet_pressure <= outlet_pressure:
+            console.print("[bold red]For a nozzle case, inlet pressure should be greater than outlet pressure.[/bold red]")
+            raise typer.Exit(code=1)
+
+        if temperature <= 0:
+            console.print("[bold red]Temperature must be positive.[/bold red]")
+            raise typer.Exit(code=1)
+
+        console.print("[bold blue]Creating nozzle case...[/bold blue]")
+
+        created_files = create_nozzle_case(
+            output_dir=output,
+            mesh_file=mesh_file,
+            inlet_pressure=inlet_pressure,
+            outlet_pressure=outlet_pressure,
+            temperature=temperature,
+            iterations=iterations,
+        )
+
+    else:
+        if freestream_pressure <= 0:
+            console.print("[bold red]Freestream pressure must be positive.[/bold red]")
+            raise typer.Exit(code=1)
+
+        if freestream_temperature <= 0:
+            console.print("[bold red]Freestream temperature must be positive.[/bold red]")
+            raise typer.Exit(code=1)
+
+        console.print("[bold blue]Creating generic SU2 case...[/bold blue]")
+
+        created_files = create_generic_case(
+            output_dir=output,
+            mesh_file=mesh_file,
+            solver=solver.upper(),
+            iterations=iterations,
+            cfl=cfl,
+            wall_marker=wall_marker,
+            farfield_marker=farfield_marker,
+            freestream_pressure=freestream_pressure,
+            freestream_temperature=freestream_temperature,
+        )
+
+    table = Table(title="Created files")
+    table.add_column("File", style="cyan")
 
     for file_path in created_files:
-        table.add_row(str(file_path), purposes.get(Path(file_path).name, "Generated file"))
+        table.add_row(str(file_path))
 
     console.print(table)
-    console.print()
-    console.print(f"[bold green]Done! Case created in:[/bold green] {output}")
-    console.print()
-    console.print("Next command to inspect:")
-    console.print(f"[yellow]type {output}\\case.cfg[/yellow]")
-
+    console.print("[bold green]Case created successfully.[/bold green]")
 
 @app.command()
 def validate(
