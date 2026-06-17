@@ -115,15 +115,17 @@ caseforge doctor --case-dir demo_case
 
 CaseForge currently supports starter case generation for nozzle and generic SU2 cases.
 
-| Command                      | Status    | Purpose                                     |
-| ---------------------------- | --------- | ------------------------------------------- |
-| `caseforge create nozzle`    | Available | Creates a starter internal nozzle SU2 case  |
-| `caseforge create generic`   | Available | Creates a general editable SU2 starter case |
-| `caseforge create airfoil`   | Planned   | Future external airfoil flow case           |
-| `caseforge create wedge`     | Planned   | Future supersonic wedge case                |
-| `caseforge create flatplate` | Planned   | Future boundary-layer flat plate case       |
+| Command                      | Status    |
+| ---------------------------- | --------- |
+| `caseforge create nozzle`    | Available |
+| `caseforge create generic`   | Available |
+| `caseforge create airfoil`   | Planned   |
+| `caseforge create wedge`     | Planned   |
+| `caseforge create flatplate` | Planned   |
 
-The following commands are designed to work with many normal SU2-style files:
+## Universal Commands
+
+These commands are designed to work with many normal SU2-style files.
 
 | Command    | Works with                   |
 | ---------- | ---------------------------- |
@@ -132,6 +134,7 @@ The following commands are designed to work with many normal SU2-style files:
 | `explain`  | Most SU2 `.cfg` files        |
 | `monitor`  | SU2-like `history.csv` files |
 | `report`   | SU2 case folders             |
+
 
 
 ## Example Workflow
