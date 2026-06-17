@@ -1,5 +1,9 @@
 # CaseForge
 
+[![Tests](https://github.com/sahil-elon/caseforge/actions/workflows/tests.yml/badge.svg)](https://github.com/sahil-elon/caseforge/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 CaseForge is a beginner-friendly command-line toolkit for SU2-based aerospace CFD workflows.
 
 It helps users generate starter SU2 cases, inspect configuration files, validate common setup mistakes, explain SU2 config keys in simple language, analyze convergence history files, plot residuals, and generate Markdown simulation reports.
